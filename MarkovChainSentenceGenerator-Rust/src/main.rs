@@ -1,8 +1,10 @@
 use std::{collections::HashMap, rc::Rc};
 use std::hash::Hash;
 
+use rand::prelude::*;
+
 #[derive(Debug, Clone)]
-struct MarkovChainNextNode<T: PartialEq + Eq + Hash + Copy> {
+pub struct MarkovChainNextNode<T: PartialEq + Eq + Hash + Copy> {
     probability: f64,
     node: Rc<MarkovChainNode<T>>,
 }
@@ -15,7 +17,7 @@ pub struct MarkovChainNode<T: PartialEq + Eq + Hash + Copy> {
 }
 
 impl<T: Copy + PartialEq + Eq + Hash> MarkovChainNode<T> {
-    fn new(content: T) -> Self {
+    pub fn new(content: T) -> Self {
         Self {
             content,
             count_of: HashMap::new(),
@@ -23,7 +25,7 @@ impl<T: Copy + PartialEq + Eq + Hash> MarkovChainNode<T> {
         }
     }
     
-    fn add(&mut self, node: MarkovChainNode<T>) -> &mut MarkovChainNode<T> {
+    pub fn add(&mut self, node: MarkovChainNode<T>) -> &mut MarkovChainNode<T> {
         let entry = self.count_of.entry(node.content).or_insert(0);
         *entry += 1;        
         self.next.push(MarkovChainNextNode { probability: f64::NAN, node: Rc::new(node) });
@@ -37,7 +39,7 @@ impl<T: Copy + PartialEq + Eq + Hash> MarkovChainNode<T> {
         Rc::get_mut(&mut self.next.last_mut().unwrap().node).unwrap()
     }
 
-    fn add_chain(&mut self, vec: Vec<MarkovChainNode<T>>) {
+    pub fn add_chain(&mut self, vec: Vec<MarkovChainNode<T>>) {
         if vec.is_empty() { return }
 
         let mut last = self;
@@ -45,6 +47,17 @@ impl<T: Copy + PartialEq + Eq + Hash> MarkovChainNode<T> {
             let new_node = last.add(node);
             last = new_node;
         }
+    }
+
+    pub fn get_next(&mut self) -> &mut Vec<MarkovChainNextNode<T>> {
+        &mut self.next
+    }
+
+    pub fn get_random_next(&mut self) -> &mut MarkovChainNode<T> {
+        let mut rng = thread_rng();
+        let index = rng.gen_range(0..self.next.len());
+
+        Rc::get_mut(&mut self.next.get_mut(index).unwrap().node).unwrap()
     }
 }
 
@@ -57,5 +70,4 @@ fn main() {
     gay.add_chain(vec![MarkovChainNode::new("Чтобы"), MarkovChainNode::new("Ты"), MarkovChainNode::new("Сдох")]);
 
     chain.add_chain(vec![MarkovChainNode::new("Пока"), gay, MarkovChainNode::new("Заебал")]);
-    println!("{:?}", chain);
 }
